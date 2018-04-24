@@ -25,7 +25,6 @@ class MedianData(object):
             axis=0)
         )
 
-
     def get_median_last_min(self):
         result = None
         try:
@@ -36,6 +35,21 @@ class MedianData(object):
         except:
             pass
         return result
+
+class InvalidUsage(Exception):
+    status_code = 400
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
 
 
 service = Flask(__name__)
@@ -54,9 +68,12 @@ def put_integer():
     """
     takes any integer
     """
-    value = np.int('%s' % request.get_data())
-    data.put_integer(value)
-    return ""
+    try: 
+        value = np.int('%s' % request.get_data())
+        data.put_integer(value)
+        return ""
+    except:
+        return InvalidUsage("Invalid input.")
 
 @service.route('/median', methods=['GET'])
 @service_auto.doc()
