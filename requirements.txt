@@ -1,4 +1,5 @@
 flask
+flask-autodoc
 numpy
 pandas
 pytest

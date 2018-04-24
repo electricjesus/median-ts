@@ -1,7 +1,10 @@
+import datetime
+
 import pandas as pd
 import numpy as np
-import flask
-import datetime
+from flask import Flask, request
+from flask_autodoc.autodoc import Autodoc
+
 
 
 class MedianData(object):
@@ -24,15 +27,45 @@ class MedianData(object):
 
 
     def get_median_last_min(self):
-        now = datetime.datetime.now()
-        a_minute_ago = now - datetime.timedelta(minutes=1)
-        mask = (self.data[self._col('ts')] > a_minute_ago) & (self.data[self._col('ts')] <= now)
-        return self.data.loc[mask][self._col('int')].median()
+        result = None
+        try:
+            now = datetime.datetime.now()
+            a_minute_ago = now - datetime.timedelta(minutes=1)
+            mask = (self.data[self._col('ts')] > a_minute_ago) & (self.data[self._col('ts')] <= now)
+            result = self.data.loc[mask][self._col('int')].median()
+        except:
+            pass
+        return result
 
 
-class MedianService(object):
-    pass
+service = Flask(__name__)
+service_auto = Autodoc(service)
+data = MedianData()
 
-if __name__ == "__main__":
-    # TODO: flask server
-    pass
+
+@service.route('/')
+@service.route('/documentation')
+def documentation():
+    return service_auto.html()
+
+@service.route('/put', methods=['POST'])
+@service_auto.doc()
+def put_integer():
+    """
+    takes any integer
+    """
+    value = np.int('%s' % request.get_data())
+    data.put_integer(value)
+    return ""
+
+@service.route('/median', methods=['GET'])
+@service_auto.doc()
+def median():
+    """
+    returns the median for all the values for the last minute. 
+    """
+    median = data.get_median_last_min()
+    return "No data yet." if not median else '%s' % median
+
+if __name__ == "__main__": 
+    service.run(port=5005)
